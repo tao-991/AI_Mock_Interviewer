@@ -3,3 +3,5 @@ uvicorn
 openai
 pydantic
 python-dotenv
+pypdf
+python-multipart
