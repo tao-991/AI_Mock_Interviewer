@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Interview Agent</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f0f2f5; }
+        .box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input, textarea { width: 100%; padding: 10px; margin: 5px 0 15px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; }
+        #chat-history { height: 400px; overflow-y: auto; border: 1px solid #eee; padding: 10px; margin-bottom: 10px; }
+        .msg { margin: 10px 0; padding: 10px; border-radius: 8px; max-width: 80%; }
+        .msg.user { background: #e3f2fd; margin-left: auto; text-align: right; }
+        .msg.assistant { background: #f1f1f1; margin-right: auto; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div id="setup-panel" class="box">
+    <h2>🎯 Interview Setup</h2>
+    <label>Company:</label>
+    <input type="text" id="company" placeholder="e.g. Google">
+    <label>Position:</label>
+    <input type="text" id="position" placeholder="e.g. Product Manager">
+    <button onclick="startInterview()">Start Interview</button>
+</div>
+
+<div id="chat-panel" class="box hidden">
+    <div id="chat-history"></div>
+    <div style="display: flex; gap: 10px;">
+        <input type="text" id="user-input" placeholder="Type your answer..." onkeypress="if(event.key==='Enter') sendMessage()">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
+<script>
+    let history = [];
+
+    async function startInterview() {
+        const company = document.getElementById('company').value;
+        const position = document.getElementById('position').value;
+        if (!company || !position) return alert("Please fill in fields");
+
+        const btn = document.querySelector('button');
+        btn.innerText = "Loading...";
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/start_interview', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ company, position })
+            });
+            const data = await res.json();
+            history = data.history;
+            renderChat();
+
+            document.getElementById('setup-panel').classList.add('hidden');
+            document.getElementById('chat-panel').classList.remove('hidden');
+        } catch (e) {
+            alert("Error starting interview. Check console.");
+            console.error(e);
+        }
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('user-input');
+        const text = input.value.trim();
+        if (!text) return;
+
+        // Optimistic update
+        history.push({ role: 'user', content: text });
+        renderChat();
+        input.value = '';
+
+        try {
+            const res = await fetch('/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ history: history, user_input: text })
+            });
+            const data = await res.json();
+            history = data.history;
+            renderChat();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function renderChat() {
+        const chatBox = document.getElementById('chat-history');
+        chatBox.innerHTML = '';
+        history.filter(m => m.role !== 'system').forEach(msg => {
+            const div = document.createElement('div');
+            div.className = `msg ${msg.role}`;
+            div.innerText = msg.content;
+            chatBox.appendChild(div);
+        });
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+</script>
+</body>
+</html>
