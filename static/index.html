@@ -81,6 +81,36 @@
 
 <script>
     let history = [];
+    let currentAudio = null;
+
+    async function playAudio(text) {
+        // 如果有正在播放的，先停止（防止两个人同时说话）
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio = null;
+        }
+
+        try {
+            const res = await fetch('/tts', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ text: text })
+            });
+
+            if (!res.ok) throw new Error("TTS failed");
+
+            // 把返回的二进制流变成 Blob URL
+            const blob = await res.blob();
+            const audioUrl = URL.createObjectURL(blob);
+
+            // 播放
+            currentAudio = new Audio(audioUrl);
+            currentAudio.play();
+
+        } catch (e) {
+            console.error("Audio play error:", e);
+        }
+    }
 
     async function startInterview() {
         // 1. 获取输入数据
@@ -129,6 +159,8 @@
             document.getElementById('setup-panel').classList.add('hidden');
             document.getElementById('chat-panel').classList.remove('hidden');
 
+            playAudio(data.latest_response);
+
         } catch (e) {
             alert("Error: " + e.message);
             btn.innerText = originalText;
@@ -141,6 +173,12 @@
         const input = document.getElementById('user-input');
         const text = input.value.trim();
         if (!text) return;
+
+        // 🔥 如果用户开始说话（输入），立即打断 AI 的语音
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio = null;
+        }
 
         // 乐观更新
         history.push({ role: 'user', content: text });
@@ -156,6 +194,9 @@
             const data = await res.json();
             history = data.history;
             renderChat();
+
+            // 🔥 新增：播放 AI 的回复
+            playAudio(data.latest_response);
         } catch (e) {
             console.error(e);
             alert("Connection error");

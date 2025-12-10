@@ -1,7 +1,7 @@
 import os
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -73,10 +73,33 @@ def create_system_prompt(company: str, position: str, resume_text: str, jd_text:
     4. If the JD is provided, align questions to it. If NOT provided, ask standard questions for a {position}.
     5. Be professional but slightly challenging.
     6. Keep the interview in ENGLISH.
+    7. The first question should be an introduction question about their background and experience.
     """
 
 
+class TTSRequest(BaseModel):
+    text: str
+
 # --- 路由 ---
+
+@app.post("/tts")
+async def tts(request: TTSRequest):
+    try:
+        # 使用 OpenAI 的 tts-1 模型
+        response = client.audio.speech.create(
+            model="tts-1",
+            voice="alloy",  # 可选声音: alloy, echo, fable, onyx, nova, shimmer
+            input=request.text
+        )
+
+        # 将二进制音频数据直接流式返回给前端
+        return StreamingResponse(
+            response.iter_bytes(),
+            media_type="audio/mpeg"
+        )
+    except Exception as e:
+        print(f"TTS Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
