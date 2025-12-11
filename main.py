@@ -185,7 +185,7 @@ async def start_interview(
 
 @app.post("/chat")
 async def chat(request: ChatRequest):
-   # transfter the json from front-end to the format that langchain accepts
+   # transfer the json from front-end to the format that langchain accepts
     messages = []
 
     for msg in request.history:
