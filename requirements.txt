@@ -5,3 +5,5 @@ pydantic
 python-dotenv
 pypdf
 python-multipart
+langchain-openai
+langchain-core
