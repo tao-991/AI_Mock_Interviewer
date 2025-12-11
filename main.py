@@ -69,35 +69,6 @@ class ChatRequest(BaseModel):
     user_input: str
 
 
-# --- 核心提示词构建 ---
-def create_system_prompt(company: str, position: str, resume_text: str, jd_text: str) -> str:
-    jd_context = f"--- JOB DESCRIPTION (JD) ---\n{jd_text[:3000]}" if jd_text else "Job Description: Not provided. Please rely on general knowledge for this role."
-    resume_context = f"--- CANDIDATE RESUME ---\n{resume_text[:3000]}" if resume_text else "Candidate Resume: Not provided. Ask the candidate to introduce themselves and their background."
-
-
-    return f"""
-    You are an expert AI Interviewer for {company}. 
-    You are interviewing a candidate for the {position} role.
-
-    --- JOB DESCRIPTION (JD) ---
-    {jd_context}  # 限制长度防止 Token 溢出
-
-    --- CANDIDATE RESUME ---
-    {resume_context} # 限制长度防止 Token 溢出
-
-    YOUR GOAL:
-    Conduct a realistic mock interview.
-
-    YOUR RULES:
-    1. Start by welcoming the candidate.
-    2. Ask ONE question at a time.
-    3. If the Resume is provided, ask specifically about their experience. If NOT provided, ask them to describe their relevant experience.
-    4. If the JD is provided, align questions to it. If NOT provided, ask standard questions for a {position}.
-    5. Be professional but slightly challenging.
-    6. Keep the interview in ENGLISH.
-    7. The first question should be an introduction question about their background and experience.
-    """
-
 
 class TTSRequest(BaseModel):
     text: str
