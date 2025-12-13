@@ -87,7 +87,7 @@ async def tts(audio: UploadFile = File(...)):
 
         return {"transcript": response.text}
     except Exception as e:
-        print(f"TTS Error: {e}")
+        print(f"STT Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/tts")

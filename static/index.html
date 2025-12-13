@@ -74,7 +74,7 @@
         <div class="input-area">
             <input type="text" id="user-input" placeholder="Type your answer here..." onkeypress="if(event.key==='Enter') sendMessage()">
             <button onclick="sendMessage()">Send</button>
-            <button onclick="recordAnswer()">🎤</button>
+            <button onclick="startRecording()" style="background: #28a745;">🎤</button>
         </div>
         <button style="background: #718096; margin-top: 10px;" onclick="location.reload()">End Interview</button>
     </div>
@@ -170,44 +170,54 @@
         }
     }
 
-    async function recordAnswer(){
-    // 检查浏览器支持
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            return alert("Your browser does not support audio recording.");
+    function startRecording() {
+        // 1. 检查浏览器支持
+        if (!('webkitSpeechRecognition' in window)) {
+            return alert("Sorry, your browser (Chrome) supports this, but setup is wrong. Please use Chrome on Desktop.");
         }
 
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mediaRecorder = new MediaRecorder(stream);
-        const audioChunks = [];
+        const recognition = new webkitSpeechRecognition();
 
-        mediaRecorder.ondataavailable = event => {
-            audioChunks.push(event.data);
-        };
+        // 2. 配置
+        recognition.lang = 'en-US'; // 强制识别英语（练习口语）
+        recognition.continuous = false; // 说完一句自动停止
+        recognition.interimResults = true; // 允许实时显示结果
 
-        mediaRecorder.onstop = async () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-            const formData = new FormData();
-            formData.append('audio', audioBlob, 'recording.webm');  //OpenAI needs the extension (.webm .mp3 .wav) to know how to decode it
+        const inputField = document.getElementById('user-input');
+        const originalPlaceholder = inputField.placeholder;
+        inputField.placeholder = "Listening... 🎤";
 
-            try {
-                const res = await fetch('/stt', {
-                    method: 'POST',
-                    body: formData
-                });
+        // 3. 开始监听
+        recognition.start();
 
-                if (!res.ok) throw new Error(await res.text());
-
-                const data = await res.json();
-                document.getElementById('user-input').value = data.transcription;
-            } catch (e) {
-                console.error(e);
-                alert("Speech-to-Text error");
+        // 4. 实时把听到的话填入输入框
+        recognition.onresult = (event) => {
+            let finalTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript;
+                } else {
+                    // 临时的结果（还没说完的）
+                    inputField.value = event.results[i][0].transcript;
+                }
+            }
+            if (finalTranscript) {
+                inputField.value = finalTranscript;
+                // 可选：如果你想说完自动发送，可以在这里调用 sendMessage()
+                // sendMessage();
             }
         };
 
-        mediaRecorder.start();
-        alert("Recording... Click OK to stop.");
-        mediaRecorder.stop();
+        // 5. 结束处理
+        recognition.onend = () => {
+            inputField.placeholder = originalPlaceholder;
+            // 可以在这里恢复按钮状态
+        };
+
+        recognition.onerror = (event) => {
+            console.error("Speech error:", event.error);
+            inputField.placeholder = "Error, try again.";
+        };
     }
 
     async function sendMessage() {
