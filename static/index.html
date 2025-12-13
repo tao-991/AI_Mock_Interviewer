@@ -72,9 +72,15 @@
     <div id="chat-panel" class="hidden">
         <div id="chat-history"></div>
         <div class="input-area">
-            <input type="text" id="user-input" placeholder="Type your answer here..." onkeypress="if(event.key==='Enter') sendMessage()">
+            <textarea
+                id="user-input"
+                style="height: 200px; width: 100%; resize: vertical; padding: 10px; font-family: inherit;"
+                placeholder="Type your answer here..."
+                onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }">
+            </textarea>
+            <button id="mic-btn" onclick="toggleRecording()" style="background: #28a745; width: 50px; height: 50px; border-radius: 50%;">🎤</button>
             <button onclick="sendMessage()">Send</button>
-            <button onclick="startRecording()" style="background: #28a745;">🎤</button>
+<!--            <button onclick="startRecording()" style="background: #28a745;">🎤</button>-->
         </div>
         <button style="background: #718096; margin-top: 10px;" onclick="location.reload()">End Interview</button>
     </div>
@@ -83,6 +89,9 @@
 <script>
     let history = [];
     let currentAudio = null;
+    let recognition;
+    let isRecording = false;
+    let baseText = "";
 
     async function playAudio(text) {
         // 如果有正在播放的，先停止（防止两个人同时说话）
@@ -160,7 +169,7 @@
             document.getElementById('setup-panel').classList.add('hidden');
             document.getElementById('chat-panel').classList.remove('hidden');
 
-            playAudio(data.latest_response);
+<!--            playAudio(data.latest_response);-->
 
         } catch (e) {
             alert("Error: " + e.message);
@@ -170,53 +179,73 @@
         }
     }
 
-    function startRecording() {
-        // 1. 检查浏览器支持
+    function toggleRecording() {
+        // 1. Check browser support
         if (!('webkitSpeechRecognition' in window)) {
-            return alert("Sorry, your browser (Chrome) supports this, but setup is wrong. Please use Chrome on Desktop.");
+            return alert("Browser not supported. Please use Chrome.");
         }
 
-        const recognition = new webkitSpeechRecognition();
-
-        // 2. 配置
-        recognition.lang = 'en-US'; // 强制识别英语（练习口语）
-        recognition.continuous = false; // 说完一句自动停止
-        recognition.interimResults = true; // 允许实时显示结果
-
+        const micBtn = document.getElementById('mic-btn');
         const inputField = document.getElementById('user-input');
-        const originalPlaceholder = inputField.placeholder;
-        inputField.placeholder = "Listening... 🎤";
 
-        // 3. 开始监听
+        // --- STOP LOGIC ---
+        if (isRecording) {
+            recognition.stop(); // This triggers 'onend' automatically
+            return;
+        }
+
+        // --- START LOGIC ---
+        recognition = new webkitSpeechRecognition();
+        recognition.lang = 'en-US';
+
+        // 🔥 CRITICAL CHANGE: Keep recording until we say stop
+        recognition.continuous = true;
+        recognition.interimResults = true; // Show words as they are spoken
+
+        // Save current text so we append to it, rather than overwriting it
+        baseText = inputField.value;
+        // Add a space if there is already text
+        if (baseText.length > 0 && !baseText.endsWith(' ')) {
+            baseText += " ";
+        }
+
         recognition.start();
 
-        // 4. 实时把听到的话填入输入框
-        recognition.onresult = (event) => {
-            let finalTranscript = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript;
-                } else {
-                    // 临时的结果（还没说完的）
-                    inputField.value = event.results[i][0].transcript;
-                }
-            }
-            if (finalTranscript) {
-                inputField.value = finalTranscript;
-                // 可选：如果你想说完自动发送，可以在这里调用 sendMessage()
-                // sendMessage();
-            }
-        };
+        // Update UI
+        isRecording = true;
+        micBtn.innerText = "🟥"; // Stop icon
+        micBtn.style.background = "#dc3545"; // Red color
+        inputField.placeholder = "Listening... (Click Red button to stop)";
 
-        // 5. 结束处理
-        recognition.onend = () => {
-            inputField.placeholder = originalPlaceholder;
-            // 可以在这里恢复按钮状态
+        recognition.onresult = (event) => {
+            let currentSessionTranscript = '';
+
+            // Combine all results from this recording session
+            for (let i = 0; i < event.results.length; ++i) {
+                currentSessionTranscript += event.results[i][0].transcript;
+            }
+
+            // Update the textarea: Old Text + New Spoken Text
+            inputField.value = baseText + currentSessionTranscript;
+
+            // Auto-scroll to bottom
+            inputField.scrollTop = inputField.scrollHeight;
         };
 
         recognition.onerror = (event) => {
             console.error("Speech error:", event.error);
-            inputField.placeholder = "Error, try again.";
+            // Don't stop immediately on minor errors, but log them
+        };
+
+        recognition.onend = () => {
+            // Reset UI when recording stops (either by user or Chrome timeout)
+            isRecording = false;
+            micBtn.innerText = "🎤";
+            micBtn.style.background = "#28a745"; // Green color
+            inputField.placeholder = "Type your answer here...";
+
+            // Update baseText to the final result, so next time we start, we continue from here
+            baseText = inputField.value;
         };
     }
 
@@ -247,7 +276,7 @@
             renderChat();
 
             // 🔥 新增：播放 AI 的回复
-            playAudio(data.latest_response);
+<!--            playAudio(data.latest_response);-->
         } catch (e) {
             console.error(e);
             alert("Connection error");

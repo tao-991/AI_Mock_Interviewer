@@ -75,21 +75,6 @@ class TTSRequest(BaseModel):
 
 # --- routing ---
 
-@app.post("/stt")
-async def tts(audio: UploadFile = File(...)):
-    try:
-        audio_content = await audio.read()
-
-        response = audio_model.audio.transcriptions.create(
-            model="gpt-4o-transcribe",
-            file = (audio.filename,audio_content, audio.content_type)
-        )
-
-        return {"transcript": response.text}
-    except Exception as e:
-        print(f"STT Error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
 @app.post("/tts")
 async def tts(request: TTSRequest):
     try:
