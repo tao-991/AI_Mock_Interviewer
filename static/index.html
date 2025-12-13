@@ -74,6 +74,7 @@
         <div class="input-area">
             <input type="text" id="user-input" placeholder="Type your answer here..." onkeypress="if(event.key==='Enter') sendMessage()">
             <button onclick="sendMessage()">Send</button>
+            <button onclick="recordAnswer()">🎤</button>
         </div>
         <button style="background: #718096; margin-top: 10px;" onclick="location.reload()">End Interview</button>
     </div>
@@ -167,6 +168,46 @@
             btn.disabled = false;
             console.error(e);
         }
+    }
+
+    async function recordAnswer(){
+    // 检查浏览器支持
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            return alert("Your browser does not support audio recording.");
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        const audioChunks = [];
+
+        mediaRecorder.ondataavailable = event => {
+            audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'recording.webm');  //OpenAI needs the extension (.webm .mp3 .wav) to know how to decode it
+
+            try {
+                const res = await fetch('/stt', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!res.ok) throw new Error(await res.text());
+
+                const data = await res.json();
+                document.getElementById('user-input').value = data.transcription;
+            } catch (e) {
+                console.error(e);
+                alert("Speech-to-Text error");
+            }
+        };
+
+        mediaRecorder.start();
+        alert("Recording... Click OK to stop.");
+        mediaRecorder.stop();
     }
 
     async function sendMessage() {

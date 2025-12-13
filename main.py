@@ -1,4 +1,5 @@
 import os
+import tempfile
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, StreamingResponse
@@ -43,7 +44,6 @@ def tts_stream_func(text: str):
         return response.iter_bytes()
     except Exception as e:
         raise ValueError(f"TTS Error: {e}")
-
 tts_runnable = RunnableLambda(tts_stream_func)
 
 
@@ -73,7 +73,22 @@ class ChatRequest(BaseModel):
 class TTSRequest(BaseModel):
     text: str
 
-# --- 路由 ---
+# --- routing ---
+
+@app.post("/stt")
+async def tts(audio: UploadFile = File(...)):
+    try:
+        audio_content = await audio.read()
+
+        response = audio_model.audio.transcriptions.create(
+            model="gpt-4o-transcribe",
+            file = (audio.filename,audio_content, audio.content_type)
+        )
+
+        return {"transcript": response.text}
+    except Exception as e:
+        print(f"TTS Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/tts")
 async def tts(request: TTSRequest):
