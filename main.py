@@ -6,11 +6,12 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
-from openai import OpenAI
+from openai import OpenAI, api_key
 from pyexpat.errors import messages
 from pypdf import PdfReader
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda
@@ -26,12 +27,16 @@ templates = Jinja2Templates(directory="static")
 
 chat_model = ChatOpenAI(
     model_name="gpt-4o-mini",
-    temperature=0.7
+    # model_name="gemini-3-pro-preview", #gemini 3 is quite slow
+    temperature=0.7,
+    openai_api_key=os.environ.get("API_KEY"),
+    openai_api_base=os.environ.get("API_BASE")
 )
 
+
 audio_model = OpenAI(
-    api_key=os.environ.get("OPENAI_API_KEY"),
-    base_url=os.environ.get("OPENAI_API_BASE")
+    api_key=os.environ.get("API_KEY"),
+    base_url=os.environ.get("API_BASE")
 )
 
 def tts_stream_func(text: str):
@@ -177,7 +182,7 @@ async def chat(request: ChatRequest):
 
         # 更新对话历史
         history_dicts = request.history + [
-            {"role": "user", "content": request.user_input},
+            # {"role": "user", "content": request.user_input},
             {"role": "assistant", "content": ai_content}
         ]
 
