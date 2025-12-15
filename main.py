@@ -103,6 +103,7 @@ async def read_root(request: Request):
 async def start_interview(
         company: str = Form(...),
         position: str = Form(...),
+        interview_type: str = Form(...),
         resume_file: Optional[UploadFile] = File(None),
         jd_file: Optional[UploadFile] = File(None)
 ):
@@ -114,6 +115,7 @@ async def start_interview(
     system_template = """
     You are an expert AI Interviewer for {company}. 
     You are interviewing a candidate for the {position} role.
+    This interview round is a {interview_type} interview. 
 
     --- JOB DESCRIPTION (JD) ---
     {jd_context}  # 限制长度防止 Token 溢出
@@ -133,6 +135,7 @@ async def start_interview(
     6. Keep the interview in ENGLISH.
     7. The first question should be an introduction question about their background and experience.
     8. For your starting words, mention the company and position by name.
+    9. Your questions should be more related to the interview type. And you need to tell the interviewee what type of the interview this is at the starting.
     """
 
     sys_prompt = ChatPromptTemplate.from_messages(["system", system_template]) # you cant use SystemMessage(content=system_template) directly here. Cuz the Langchain will think the whole template as a single message, not a template to be formatted.
@@ -140,6 +143,7 @@ async def start_interview(
     messages = sys_prompt.format_messages(
         company=company,
         position=position,
+        interview_type=interview_type,
         jd_context=jd_text[:3000] if jd_text else "Not Provided.",
         resume_context=resume_text[:3000] if resume_text else "Not Provided."
     )

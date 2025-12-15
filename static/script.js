@@ -65,12 +65,13 @@ async function playAudio(text) {
     }
 }
 
-async function startInterview() {
+async function startInterview(interview_type) {
     // 1. 获取输入数据
     const company = document.getElementById('company').value;
     const position = document.getElementById('position').value;
     const resumeFileInput = document.getElementById('resume-file');
     const jdFileInput = document.getElementById('jd-file');
+    const this_interview_type = interview_type
 
     // 2. 校验
     if (!company || !position) return alert("Please fill in Company and Position.");
@@ -85,6 +86,7 @@ async function startInterview() {
     const formData = new FormData();
     formData.append('company', company);
     formData.append('position', position);
+    formData.append('interview_type', interview_type);
     if (resumeFileInput.files.length > 0) {
         formData.append('resume_file', resumeFileInput.files[0]);
     }
@@ -113,7 +115,7 @@ async function startInterview() {
         document.getElementById('chat-panel').classList.remove('hidden');
         startTimer();
 
-<!--            playAudio(data.latest_response);-->
+        playAudio(data.latest_response);
 
     } catch (e) {
         alert("Error: " + e.message);
@@ -220,7 +222,7 @@ async function sendMessage() {
         renderChat();
 
         // 🔥 新增：播放 AI 的回复
-<!--            playAudio(data.latest_response);-->
+        playAudio(data.latest_response);
     } catch (e) {
         console.error(e);
         alert("Connection error");
@@ -234,7 +236,12 @@ function renderChat() {
         const div = document.createElement('div');
         div.className = `msg ${msg.role}`;
         // 简单的换行处理
-        div.innerHTML = msg.content.replace(/\n/g, '<br>');
+//        div.innerHTML = msg.content.replace(/\n/g, '<br>');
+        if (msg.role == 'assistant'){
+            div.innerHTML = 'Replied by Audio';
+        } else{
+            div.innerHTML = msg.content.replace(/\n/g, '<br>');
+        }
         chatBox.appendChild(div);
     });
     chatBox.scrollTop = chatBox.scrollHeight;
