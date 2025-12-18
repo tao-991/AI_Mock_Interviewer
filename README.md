@@ -30,7 +30,7 @@ AMIer/
 ├── main.py              # The FastAPI backend application
 ├── static/              # Frontend files
 │   └── index.html       # The main user interface
-|   └── script.js        # The Javascript code
+│   └── script.js        # The Javascript code
 ├── .env                 # API Keys and configuration (Create this)
 ├── requirements.txt     # Python dependencies
 └── README.md            # This file
