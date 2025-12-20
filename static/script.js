@@ -65,7 +65,7 @@ async function playAudio(text) {
     }
 }
 
-async function startInterview(interview_type) {
+async function startInterview(btn, interview_type) {
     // 1. 获取输入数据
     const company = document.getElementById('company').value;
     const position = document.getElementById('position').value;
@@ -77,7 +77,6 @@ async function startInterview(interview_type) {
     if (!company || !position) return alert("Please fill in Company and Position.");
 
     // 3. UI 变为加载状态
-    const btn = document.querySelector('#setup-panel button');
     const originalText = btn.innerText;
     btn.innerText = "Initializing Interview...";
     btn.disabled = true;
