@@ -93,6 +93,15 @@ You should see output indicating the server is running (usually at `http://0.0.0
 4.  (Optional) Upload your **Resume PDF** and **JD PDF**.
 5.  Click **"Analyze & Start Interview"**.
 
+## Roadmap
+*  [Done] Create a simple AI Mock Interviwer (AIMer) which allow users to enter their goal company and position.
+*  [Partially Done] Users can submit their resume and JD to the AIMer for reference for making better mock interview.
+*  [Done] The AIMer will read its reply to simulate a real interview senario.
+*  [Done] Provide a speech translator to allow users input their reply by speaking
+*  [Done] User can select two types of interviews (Behavior or Technical)
+*  Support leetcode algorithm mock interview round
+
+
 ## 📖 Usage Guide
 
 ### Voice Interaction
