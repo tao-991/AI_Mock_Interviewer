@@ -36,34 +36,54 @@ function pad(val){
 }
 
 
-async function playAudio(text) {
-    // 如果有正在播放的，先停止（防止两个人同时说话）
-    if (currentAudio) {
-        currentAudio.pause();
-        currentAudio = null;
+// --- Native Browser TTS (The Fast Way) ---
+function playAudio(text) {
+    // 1. Stop any previous speech immediately
+    window.speechSynthesis.cancel();
+
+    // 2. Create the utterance object
+    const utterance = new SpeechSynthesisUtterance(text);
+
+    // 3. Configure settings
+    utterance.lang = 'en-US'; // Set to English
+    utterance.rate = 1.0;     // Speed (0.1 to 10)
+    utterance.pitch = 1.0;    // Pitch (0 to 2)
+    utterance.volume = 1.0;   // Volume
+
+    // 4. (Optional) Select a specific voice
+    // Chrome loads voices asynchronously, so we try to pick a good one
+    const voices = window.speechSynthesis.getVoices();
+
+    // Try to find a "Google US English" or "Microsoft Zira" voice
+    // If not found, it uses the default system voice
+    const preferredVoice = voices.find(voice =>
+        voice.name.includes("Google US English") ||
+        voice.name.includes("Zira") ||
+        voice.lang === "en-US"
+    );
+
+    if (preferredVoice) {
+        utterance.voice = preferredVoice;
     }
 
-    try {
-        const res = await fetch('/tts', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ text: text })
-        });
+    // 5. Visual Feedback Logic (Optional - if you want to hide text)
+    // isSpeaking = true;
+    // renderChat();
 
-        if (!res.ok) throw new Error("TTS failed");
+    utterance.onend = function() {
+         isSpeaking = false;
+         renderChat();
+    };
 
-        // 把返回的二进制流变成 Blob URL
-        const blob = await res.blob();
-        const audioUrl = URL.createObjectURL(blob);
-
-        // 播放
-        currentAudio = new Audio(audioUrl);
-        currentAudio.play();
-
-    } catch (e) {
-        console.error("Audio play error:", e);
-    }
+    // 6. Speak!
+    window.speechSynthesis.speak(utterance);
 }
+
+// Helper to handle voice loading (Chrome quirk)
+window.speechSynthesis.onvoiceschanged = () => {
+    // This ensures voices are loaded when the page starts
+    window.speechSynthesis.getVoices();
+};
 
 async function startInterview(btn, interview_type) {
     // 1. 获取输入数据
@@ -228,6 +248,8 @@ async function sendMessage() {
     }
 }
 
+
+// a function to show the chat on the page
 function renderChat() {
     const chatBox = document.getElementById('chat-history');
     chatBox.innerHTML = '';
@@ -237,7 +259,8 @@ function renderChat() {
         // 简单的换行处理
 //        div.innerHTML = msg.content.replace(/\n/g, '<br>');
         if (msg.role == 'assistant'){
-            div.innerHTML = 'Replied by Audio';
+//            div.innerHTML = 'Replied by Audio';
+              div.innerHTML = msg.content.replace(/\n/g, '<br>');
         } else{
             div.innerHTML = msg.content.replace(/\n/g, '<br>');
         }
