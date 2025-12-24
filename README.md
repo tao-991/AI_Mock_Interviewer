@@ -99,7 +99,7 @@ You should see output indicating the server is running (usually at `http://0.0.0
 *  [Done] The AIMer will read its reply to simulate a real interview senario.
 *  [Done] Provide a speech translator to allow users input their reply by speaking
 *  [Done] User can select two types of interviews (Behavior or Technical)
-*  Support leetcode algorithm mock interview round
+*  [backend done] Support leetcode algorithm mock interview round
 
 
 ## 📖 Usage Guide

@@ -9,5 +9,3 @@ langchain-openai
 langchain-core
 langchain_google_genai
 mcp
-contextlib
-asyncio

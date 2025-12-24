@@ -17,6 +17,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+from langchain_core.messages import ToolMessage
 
 # load environment variables
 load_dotenv()
@@ -41,11 +42,11 @@ chat_model = ChatOpenAI(
     openai_api_base=os.environ.get("API_BASE")
 )
 
-
 audio_model = OpenAI(
     api_key=os.environ.get("API_KEY"),
     base_url=os.environ.get("API_BASE")
 )
+
 
 def tts_stream_func(text: str):
     try:
@@ -57,6 +58,8 @@ def tts_stream_func(text: str):
         return response.iter_bytes()
     except Exception as e:
         raise ValueError(f"TTS Error: {e}")
+
+
 tts_runnable = RunnableLambda(tts_stream_func)
 
 
@@ -82,9 +85,9 @@ class ChatRequest(BaseModel):
     user_input: str
 
 
-
 class TTSRequest(BaseModel):
     text: str
+
 
 # --- routing ---
 
@@ -101,6 +104,7 @@ async def tts(request: TTSRequest):
     except Exception as e:
         print(f"TTS Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
@@ -119,7 +123,7 @@ async def start_interview(
     resume_text = extract_text_from_pdf(resume_file)
     jd_text = extract_text_from_pdf(jd_file)
 
-    #try to follow the CO-STAR framework for the system prompt
+    # try to follow the CO-STAR framework for the system prompt
     system_template = """
     [Context]
     You are an expert AI Interviewer for {company}. You are interviewing a candidate for the {position} role.
@@ -159,7 +163,8 @@ async def start_interview(
     1. Reject to answer all questions which are not relevant to the interview. Remind the users to follow the interview scenario.
     """
 
-    sys_prompt = ChatPromptTemplate.from_messages(["system", system_template]) # you cant use SystemMessage(content=system_template) directly here. Cuz the Langchain will think the whole template as a single message, not a template to be formatted.
+    sys_prompt = ChatPromptTemplate.from_messages(["system",
+                                                   system_template])  # you cant use SystemMessage(content=system_template) directly here. Cuz the Langchain will think the whole template as a single message, not a template to be formatted.
 
     messages = sys_prompt.format_messages(
         company=company,
@@ -183,10 +188,9 @@ async def start_interview(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
 @app.post("/chat")
 async def chat(request: ChatRequest):
-   # transfer the json from front-end to the format that langchain accepts
+    # transfer the json from front-end to the format that langchain accepts
     messages = []
 
     for msg in request.history:
@@ -200,20 +204,94 @@ async def chat(request: ChatRequest):
 
     messages.append(HumanMessage(content=request.user_input))
 
-    try:
-        response = chat_model.invoke(messages)
+    async with AsyncExitStack() as stack:
+        try:
+            read_stream, write_stream = await stack.enter_async_context(stdio_client(server_params))
+            session = await stack.enter_async_context(ClientSession(read_stream, write_stream))
+            await session.initialize()
 
-        ai_content = response.content
+            # retrieve tools list
+            mcp_tools = await session.list_tools()
 
-        # 更新对话历史
-        history_dicts = request.history + [
-            # {"role": "user", "content": request.user_input},
-            {"role": "assistant", "content": ai_content}
-        ]
+            # convert the MCP tool to langchain tool message
+            openai_tools = []
+            for tool in mcp_tools.tools:
+                openai_tools.append({
+                    "type" : "function",
+                    "function" : {
+                        "name" : tool.name,
+                        "description" : tool.description,
+                        "parameters" : tool.inputSchema
+                    }
+                })
 
-        return {"history": history_dicts, "latest_response": ai_content}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+            # if it finds the tools, use it, otherwise, just use normal chat
+            if openai_tools:
+                llm_with_tools = chat_model.bind_tools(openai_tools)
+            else:
+                llm_with_tools = chat_model
+
+            # first round: try to use MCP tools
+            ai_response = llm_with_tools.invoke(messages)
+
+            # check if AI want to use tool
+            if ai_response.tool_calls:
+                # add the tool message to the messages
+                messages.append(ai_response)
+
+                for tool_call in ai_response.tool_calls:
+                    tool_name = tool_call["name"]
+                    tool_args = tool_call["args"]
+                    tool_id = tool_call["id"]
+
+                    # call the tool via MCP
+                    result = await session.call_tool(tool_name, tool_args)
+
+                    # add the tool result to the messages
+                    tool_response_message = result.content[0].text if result.content else "No response from tool."
+
+                    messages.append(ToolMessage(
+                        content = tool_response_message,
+                        tool_name = tool_name,
+                        tool_call_id = tool_id
+                    ))
+
+                # final round: get the final response from the AI after tool usage
+                final_response = chat_model.invoke(messages)
+                ai_content = final_response.content
+
+            else:
+                # if no tool call, just use the first response
+                ai_content = ai_response.content
+
+
+        except Exception as e:
+            # if the MCP connection failed, fall back to normal chat
+            print (f"MCP Error (falling back to normal chat) : {e}")
+            fallback_response = chat_model.invoke(messages)
+            ai_content = fallback_response.content
+
+    # update conversation history
+    history_dicts = request.history + [
+        {"role": "assistant", "content": ai_content}
+    ]
+
+    return {"history": history_dicts, "latest_response": ai_content}
+
+    # try:
+    #     response = chat_model.invoke(messages)
+    #
+    #     ai_content = response.content
+    #
+    #     # 更新对话历史
+    #     history_dicts = request.history + [
+    #         # {"role": "user", "content": request.user_input},
+    #         {"role": "assistant", "content": ai_content}
+    #     ]
+    #
+    #     return {"history": history_dicts, "latest_response": ai_content}
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

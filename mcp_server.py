@@ -1,7 +1,7 @@
 from mcp.server.fastmcp import FastMCP
 import random
 
-mcp = FastMCP("Algorithm Puzzle Selector")
+mcp = FastMCP("Interview Helper")
 
 PROBLEMS = {
     "easy" : ["Two Sum", "Merge Two Sorted List"],
@@ -25,7 +25,7 @@ def get_coding_problems(difficulty: str = "medium") -> str:
 
     problem = random.choice(PROBLEMS[difficulty])
 
-    return f"Please ask the candidate to solbe {problem}. Requirement: Analyze Time Complexity."
+    return f"Please ask the candidate to solve {problem}. Requirement: Analyze Time Complexity."
 
 if __name__ == "__main__":
-    mcp.run()
+    mcp.run(transport="stdio")
