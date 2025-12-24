@@ -1,5 +1,5 @@
 import os
-import tempfile
+import asyncio
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, StreamingResponse
@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from openai import OpenAI, api_key
-from pyexpat.errors import messages
+from contextlib import AsyncExitStack
 from pypdf import PdfReader
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
@@ -15,11 +15,19 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
 
 # load environment variables
 load_dotenv()
 
 app = FastAPI()
+
+# Connect the mcp servers
+server_params = StdioServerParameters(
+    command="python",
+    args=["mcp_server.py"],
+)
 
 # 挂载静态文件
 app.mount("/static", StaticFiles(directory="static"), name="static")
