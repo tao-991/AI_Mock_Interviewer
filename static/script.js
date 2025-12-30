@@ -240,7 +240,6 @@ async function sendMessage() {
         history = data.history;
         renderChat();
 
-        console.log("Trigger coding:", data.trigger_coding);
         if (data.trigger_coding == null) {
             playAudio(data.latest_response);
         } else {
