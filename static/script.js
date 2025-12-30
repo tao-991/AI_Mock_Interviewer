@@ -240,8 +240,13 @@ async function sendMessage() {
         history = data.history;
         renderChat();
 
-        // 🔥 新增：播放 AI 的回复
-        playAudio(data.latest_response);
+        console.log("Trigger coding:", data.trigger_coding);
+        if (data.trigger_coding == null) {
+            playAudio(data.latest_response);
+        } else {
+            playAudio("Here is a leetcode question for your technical interview. Please finish it within 30 minutes by clicking the link I have sent to you.");
+        }
+
     } catch (e) {
         console.error(e);
         alert("Connection error");

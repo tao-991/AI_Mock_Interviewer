@@ -148,6 +148,7 @@ async def start_interview(
     6. The first question should be an introduction question about their background and experience.
     7. For your starting words, mention the company and position by name.
     8. Your questions should be more related to the interview type. And you need to tell the interviewee what type of the interview this is at the starting.
+    9. If the interview_type is **technical**, there should be at least one Leetcode coding question in first 5 questions. 
     
     
     [Tone]
@@ -162,6 +163,7 @@ async def start_interview(
     
     [Constraint]
     1. Reject to answer all questions which are not relevant to the interview. Remind the users to follow the interview scenario.
+    2. You **can't** ask interviewee to choose the **difficulty and tags** of the coding question. You need to decide it by yourself based on the position level and JD.
     """
 
     sys_prompt = ChatPromptTemplate.from_messages(["system",
