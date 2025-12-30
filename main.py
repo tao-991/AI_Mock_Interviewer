@@ -159,6 +159,7 @@ async def start_interview(
     [Response Format]
     1. Make sure your response it natural for transferring to oral speaking English. 
     
+    
     [Constraint]
     1. Reject to answer all questions which are not relevant to the interview. Remind the users to follow the interview scenario.
     """
@@ -234,6 +235,8 @@ async def chat(request: ChatRequest):
             # first round: try to use MCP tools
             ai_response = llm_with_tools.invoke(messages)
 
+            trigger_coding_ui = None
+
             # check if AI want to use tool
             if ai_response.tool_calls:
                 # add the tool message to the messages
@@ -249,6 +252,10 @@ async def chat(request: ChatRequest):
 
                     # add the tool result to the messages
                     tool_response_message = result.content[0].text if result.content else "No response from tool."
+
+                    if "https://leetcode.com/problems/" in tool_response_message:
+                        trigger_coding_ui = tool_response_message
+                        tool_response_message += "\n(Note: A coding problem has been provided. Please check the link.)"
 
                     messages.append(ToolMessage(
                         content = tool_response_message,
@@ -276,7 +283,7 @@ async def chat(request: ChatRequest):
         {"role": "assistant", "content": ai_content}
     ]
 
-    return {"history": history_dicts, "latest_response": ai_content}
+    return {"history": history_dicts, "latest_response": ai_content, "trigger_coding": trigger_coding_ui}
 
     # try:
     #     response = chat_model.invoke(messages)

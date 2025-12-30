@@ -13,14 +13,13 @@
 
 *   **📄 Context-Aware Analysis**: Upload your Resume and target Job Description (PDF format). The AI acts as a specific interviewer for that specific role.
 *   **🎤 Real-time Speech Recognition (STT)**: Utilizes the browser's native **Web Speech API** for unlimited, continuous, and free speech-to-text input.
-*   **⚡ Low Latency Interaction**: Optimized architecture for fast responses.
+*   **⚡ Low Latency Interaction**: Optimized architecture for fast responses. 
 *   **⏸️ Interruptible**: Stop the interviewer mid-sentence by starting to speak or typing.
 
 ## 🛠️ Tech Stack
 
 *   **Backend**: Python, FastAPI
 *   **AI Model**: OpenAI GPT-3.5 / GPT-4
-*   **PDF Parsing**: `pypdf`
 *   **Frontend**: HTML5, CSS3, JavaScript
 
 ## 📂 Project Structure
@@ -100,6 +99,7 @@ You should see output indicating the server is running (usually at `http://0.0.0
 *  [Done] Provide a speech translator to allow users input their reply by speaking
 *  [Done] User can select two types of interviews (Behavior or Technical)
 *  [backend done] Support leetcode algorithm mock interview round
+*  Optimize the prompt engineering to make sure the model will not answer questions not related to interview.
 
 
 ## 📖 Usage Guide
