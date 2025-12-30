@@ -257,13 +257,16 @@ function renderChat() {
         const div = document.createElement('div');
         div.className = `msg ${msg.role}`;
         // 简单的换行处理
-//        div.innerHTML = msg.content.replace(/\n/g, '<br>');
-        if (msg.role == 'assistant'){
-//            div.innerHTML = 'Replied by Audio';
-              div.innerHTML = msg.content.replace(/\n/g, '<br>');
-        } else{
-            div.innerHTML = msg.content.replace(/\n/g, '<br>');
-        }
+        const rawHtml = marked.parse(msg.content);
+        const safeHtml = DOMPurify.sanitize(rawHtml);
+
+        div.innerHTML = safeHtml
+//        if (msg.role == 'assistant'){
+////            div.innerHTML = 'Replied by Audio';
+//              div.innerHTML = msg.content.replace(/\n/g, '<br>');
+//        } else{
+//            div.innerHTML = msg.content.replace(/\n/g, '<br>');
+//        }
         chatBox.appendChild(div);
     });
     chatBox.scrollTop = chatBox.scrollHeight;

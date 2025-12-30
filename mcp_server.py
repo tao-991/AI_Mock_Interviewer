@@ -41,8 +41,8 @@ def fetch_leetcode_question(difficulty: str = "Medium", tag: str = "") -> str:
     url = "https://leetcode.com/graphql/"
 
     # Normalize inputs
-    difficulty = difficulty.Upper()
-    if difficulty not in ["Easy", "Medium", "Hard"]:
+    difficulty = difficulty.upper()
+    if difficulty not in ["EASY", "MEDIUM", "HARD"]:
         return "Error: Invalid difficulty."
 
     # Prepare Filters

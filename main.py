@@ -218,11 +218,11 @@ async def chat(request: ChatRequest):
             openai_tools = []
             for tool in mcp_tools.tools:
                 openai_tools.append({
-                    "type" : "function",
-                    "function" : {
-                        "name" : tool.name,
-                        "description" : tool.description,
-                        "parameters" : tool.inputSchema
+                    "type": "function",
+                    "function": {
+                        "name": tool.name,
+                        "description": tool.description,
+                        "parameters": tool.inputSchema
                     }
                 })
 
@@ -255,12 +255,12 @@ async def chat(request: ChatRequest):
 
                     if "https://leetcode.com/problems/" in tool_response_message:
                         trigger_coding_ui = tool_response_message
-                        tool_response_message += "\n(Note: A coding problem has been provided. Please check the link.)"
+                        tool_response_message += "\n\n[SYSTEM INSTRUCTION: You MUST output the LeetCode link provided above using Markdown format: [Title](URL). Do not omit the link.]"
 
                     messages.append(ToolMessage(
-                        content = tool_response_message,
-                        tool_name = tool_name,
-                        tool_call_id = tool_id
+                        content=tool_response_message,
+                        tool_name=tool_name,
+                        tool_call_id=tool_id
                     ))
 
                 # final round: get the final response from the AI after tool usage
@@ -274,7 +274,7 @@ async def chat(request: ChatRequest):
 
         except Exception as e:
             # if the MCP connection failed, fall back to normal chat
-            print (f"MCP Error (falling back to normal chat) : {e}")
+            print(f"MCP Error (falling back to normal chat) : {e}")
             fallback_response = chat_model.invoke(messages)
             ai_content = fallback_response.content
 
@@ -284,21 +284,6 @@ async def chat(request: ChatRequest):
     ]
 
     return {"history": history_dicts, "latest_response": ai_content, "trigger_coding": trigger_coding_ui}
-
-    # try:
-    #     response = chat_model.invoke(messages)
-    #
-    #     ai_content = response.content
-    #
-    #     # 更新对话历史
-    #     history_dicts = request.history + [
-    #         # {"role": "user", "content": request.user_input},
-    #         {"role": "assistant", "content": ai_content}
-    #     ]
-    #
-    #     return {"history": history_dicts, "latest_response": ai_content}
-    # except Exception as e:
-    #     raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":
