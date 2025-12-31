@@ -198,7 +198,7 @@ async def chat(request: ChatRequest):
     # transfer the json from front-end to the format that langchain accepts
     messages = []
     # Add a constraint after user input to make sure the AI model will not answer irrelevant questions
-    topic_constraint = "Judge that if the user question is relevant to the interview scenario. If not, refuse to answer and remind the user to follow the interview scenario. And keep asking questions related to the interview."
+    topic_constraint = "Judge that if the user question is relevant to the interview scenario. If not, refuse to answer and remind the user to follow the interview scenario. And asked the interviewee again about the previous not answered question."
 
     for msg in request.history:
         role = msg.get("role")
