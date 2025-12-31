@@ -24,6 +24,8 @@ load_dotenv()
 
 app = FastAPI()
 
+
+
 # Connect the mcp servers
 server_params = StdioServerParameters(
     command="python",
@@ -195,6 +197,8 @@ async def start_interview(
 async def chat(request: ChatRequest):
     # transfer the json from front-end to the format that langchain accepts
     messages = []
+    # Add a constraint after user input to make sure the AI model will not answer irrelevant questions
+    topic_constraint = "Judge that if the user question is relevant to the interview scenario. If not, refuse to answer and remind the user to follow the interview scenario. And keep asking questions related to the interview."
 
     for msg in request.history:
         role = msg.get("role")
@@ -205,7 +209,7 @@ async def chat(request: ChatRequest):
         elif role == 'assistant':
             messages.append(AIMessage(content=msg.get("content")))
 
-    messages.append(HumanMessage(content=request.user_input))
+    messages.append(HumanMessage(content=request.user_input + topic_constraint))
 
     async with AsyncExitStack() as stack:
         try:
@@ -264,6 +268,8 @@ async def chat(request: ChatRequest):
                         tool_name=tool_name,
                         tool_call_id=tool_id
                     ))
+
+                # Add constraint message here to make sure the AI model will not answer irrelevant questions
 
                 # final round: get the final response from the AI after tool usage
                 final_response = chat_model.invoke(messages)
